@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Japeto Prediction Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      color-scheme: light;
+      --canvas: #fbfaf7;
+      --surface: #fffefa;
+      --ink: #10213f;
+      --muted: #68738a;
+      --line: #d9dce2;
+      --soft-line: #e9e9e5;
+      --navy: #16257d;
+      --blue: #3657c8;
+      --green: #079452;
+      --green-soft: #e4f4ea;
+      --danger: #b42318;
+      --danger-soft: #fff0ee;
+      --radius: 6px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-synthesis: none;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; color: var(--ink); background: var(--canvas); font-size: 14px; }
+    button, select, textarea { font: inherit; }
+    button, select { min-height: 38px; }
+    button:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px solid rgba(54,87,200,.24); outline-offset: 2px; }
+    .app { min-height: 100vh; display: grid; grid-template-columns: minmax(370px, 37%) 1fr; }
+    .studio { padding: 18px 28px 28px; border-right: 1px solid var(--line); background: rgba(255,254,250,.88); }
+    .analytics { padding: 30px 32px 24px; min-width: 0; }
+    .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 27px; }
+    .brand-mark { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 7px; background: var(--ink); color: white; font-size: 17px; }
+    .brand h1 { margin: 0; font-size: 21px; letter-spacing: -.03em; }
+    .brand p { margin: 2px 0 0; color: var(--muted); font-size: 12px; }
+    h2 { margin: 0; font-size: 18px; letter-spacing: -.025em; }
+    h3 { margin: 0; font-size: 14px; }
+    .eyebrow { color: var(--muted); margin: 5px 0 17px; font-size: 12px; }
+    .section { border-top: 1px solid var(--line); padding-top: 14px; margin-top: 14px; }
+    .field { margin-top: 13px; }
+    label, .field-label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 6px; }
+    .help { color: var(--muted); font-size: 11px; margin-top: 6px; line-height: 1.45; }
+    .segmented { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid #bfc4cd; border-radius: var(--radius); overflow: hidden; }
+    .segmented button { border: 0; background: transparent; color: var(--ink); cursor: pointer; min-height: 35px; }
+    .segmented button.active { background: var(--green); color: white; }
+    .control-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    select, textarea { width: 100%; color: var(--ink); background: var(--surface); border: 1px solid #bfc4cd; border-radius: var(--radius); }
+    select { padding: 0 10px; }
+    textarea { min-height: 82px; resize: vertical; padding: 12px; line-height: 1.5; }
+    textarea:focus { border-color: var(--green); }
+    .textarea-meta { display: flex; justify-content: flex-end; color: var(--muted); font-size: 10px; margin-top: 4px; }
+    .toggle-row { display: flex; align-items: center; justify-content: space-between; margin: 13px 0 0; }
+    .toggle-row label { margin: 0; }
+    .switch { position: relative; width: 36px; height: 20px; border: 0; min-height: 20px; border-radius: 20px; background: #aeb5c0; cursor: pointer; }
+    .switch::after { content: ""; position: absolute; width: 16px; height: 16px; left: 2px; top: 2px; border-radius: 50%; background: white; transition: transform .18s ease; }
+    .switch.active { background: var(--green); }
+    .switch.active::after { transform: translateX(16px); }
+    .predict { width: 100%; border: 0; border-radius: var(--radius); color: white; background: var(--navy); font-weight: 600; cursor: pointer; margin-top: 12px; }
+    .predict:hover { background: #101d68; }
+    .predict:disabled { opacity: .55; cursor: wait; }
+    .result { min-height: 168px; }
+    .result-heading { display: flex; align-items: center; justify-content: space-between; margin-top: 16px; }
+    .badge { border: 1px solid #8fd2ad; color: var(--green); border-radius: 4px; padding: 2px 6px; font-size: 10px; }
+    .prediction { margin: 7px 0 15px; color: var(--green); font-size: clamp(25px, 2.7vw, 34px); font-weight: 700; letter-spacing: -.04em; }
+    .confidence-row { display: grid; grid-template-columns: minmax(118px, 1.2fr) 2.4fr 44px; gap: 9px; align-items: center; margin: 10px 0; font-size: 11px; }
+    .bar-track { height: 9px; background: #e8eaf0; }
+    .bar { height: 100%; background: var(--blue); transition: width .35s ease; }
+    .confidence-row:first-child .bar { background: var(--green); }
+    .run-meta { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--line); margin-top: 18px; padding-top: 12px; }
+    .meta-item { padding-right: 10px; min-width: 0; }
+    .meta-item + .meta-item { padding-left: 12px; border-left: 1px solid var(--line); }
+    .meta-label { color: var(--muted); font-size: 10px; margin-bottom: 7px; }
+    .meta-value { font-size: 11px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ok { color: var(--green); }
+    .error-box { display: none; margin-top: 12px; padding: 10px 12px; color: var(--danger); background: var(--danger-soft); border: 1px solid #f2c7c2; border-radius: var(--radius); font-size: 11px; line-height: 1.45; }
+    .error-box.visible { display: block; }
+    .analytics-head { display: flex; justify-content: space-between; gap: 20px; align-items: flex-start; }
+    .analytics-head select { width: auto; min-width: 190px; }
+    .metrics { display: grid; grid-template-columns: repeat(5, 1fr); margin: 30px 0 44px; }
+    .metric { text-align: center; padding: 0 12px; min-width: 0; }
+    .metric + .metric { border-left: 1px solid var(--line); }
+    .metric-name { color: var(--muted); font-size: 11px; }
+    .metric-value { margin-top: 12px; font-size: clamp(22px, 2.5vw, 31px); letter-spacing: -.04em; }
+    .metric-note { margin-top: 8px; color: var(--green); font-size: 10px; }
+    .data-grid { display: grid; grid-template-columns: minmax(300px, 42%) 1fr; gap: 40px; }
+    .panel-title { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 13px; }
+    .panel-title small { color: var(--muted); font-size: 10px; }
+    .chart-wrap { height: 245px; }
+    .matrix-wrap { overflow: auto; max-height: 290px; }
+    table { width: 100%; border-collapse: collapse; font-size: 10px; background: rgba(255,255,255,.42); }
+    th, td { border: 1px solid var(--line); padding: 7px 8px; text-align: right; }
+    th { color: #31405d; font-weight: 600; background: #fbfbf8; }
+    th:first-child, td:first-child { text-align: left; font-weight: 600; }
+    .class-panel { margin-top: 38px; }
+    .class-table-wrap { overflow: auto; max-height: 300px; }
+    .class-table th, .class-table td { padding: 7px 10px; }
+    .footer { text-align: right; margin-top: 18px; color: var(--muted); font-size: 10px; font-style: italic; }
+    .empty { display: none; padding: 18px; border: 1px dashed #bfc4cd; border-radius: var(--radius); color: var(--muted); line-height: 1.6; }
+    .empty.visible { display: block; }
+    [hidden] { display: none !important; }
+    @media (max-width: 1080px) {
+      .app { grid-template-columns: 360px 1fr; }
+      .analytics { padding: 25px 22px; }
+      .metrics { grid-template-columns: repeat(3, 1fr); row-gap: 24px; }
+      .metric:nth-child(4) { border-left: 0; }
+      .data-grid { grid-template-columns: 1fr; gap: 32px; }
+    }
+    @media (max-width: 780px) {
+      .app { display: block; }
+      .studio { border-right: 0; border-bottom: 1px solid var(--line); }
+      .analytics { padding: 24px 18px; }
+      .metrics { grid-template-columns: repeat(2, 1fr); margin-bottom: 34px; }
+      .metric:nth-child(3), .metric:nth-child(5) { border-left: 0; }
+      .analytics-head { display: block; }
+      .analytics-head select { width: 100%; margin-top: 14px; }
+    }
+    @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; transition: none !important; } }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <aside class="studio" aria-label="Live classification studio">
+      <header class="brand">
+        <div class="brand-mark" aria-hidden="true"><i class="fa-solid fa-chart-simple"></i></div>
+        <div><h1>Prediction Studio</h1><p>ML chatbot-response classifier</p></div>
+      </header>
+
+      <section>
+        <h2>Live Classification</h2>
+        <p class="eyebrow">Configure your model, enter a response, and get an instant prediction.</p>
+        <div class="section">
+          <span class="field-label">Label set</span>
+          <div class="segmented" role="group" aria-label="Label scheme">
+            <button id="originalLabel" class="active" type="button" aria-pressed="true">Original (Fine-grained)</button>
+            <button id="groupedLabel" type="button" aria-pressed="false">Grouped (Coarse)</button>
+          </div>
+          <p class="help">Original preserves granular Japeto categories. Grouped merges related categories.</p>
+        </div>
+
+        <div class="section">
+          <h3>Model configuration</h3>
+          <div class="control-grid field">
+            <div><label for="featureSelect">Vectorizer</label><select id="featureSelect"></select></div>
+            <div><label for="algorithmSelect">Model</label><select id="algorithmSelect"></select></div>
+          </div>
+          <p class="help" id="parameterSummary">Select a registered model to inspect its fitted parameters.</p>
+        </div>
+
+        <div class="field">
+          <label for="responseInput">Chatbot response (required)</label>
+          <textarea id="responseInput" maxlength="20000" placeholder="Paste a chatbot response to classify..."></textarea>
+          <div class="textarea-meta"><span id="responseCount">0 / 20,000</span></div>
+        </div>
+        <div class="toggle-row">
+          <label for="contextToggle">Use user message as context <i class="fa-regular fa-circle-question" title="Context-enhanced models require both fields."></i></label>
+          <button id="contextToggle" class="switch" type="button" role="switch" aria-checked="false" aria-label="Use user message as context"></button>
+        </div>
+        <div class="field" id="userField" hidden>
+          <label for="userInput">User message (required in context mode)</label>
+          <textarea id="userInput" maxlength="10000" placeholder="Paste the user message that led to this response..."></textarea>
+          <div class="textarea-meta"><span id="userCount">0 / 10,000</span></div>
+        </div>
+        <button id="predictButton" class="predict" type="button"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i>&nbsp; Predict</button>
+        <div id="errorBox" class="error-box" role="alert"></div>
+
+        <div class="result" aria-live="polite">
+          <div class="result-heading"><strong id="resultLabel">Predicted category</strong><span class="badge">Top 1</span></div>
+          <div id="prediction" class="prediction">Ready to classify</div>
+          <strong class="field-label">Top 3 confidence</strong>
+          <div id="confidenceList"><p class="help">Prediction probabilities will appear here.</p></div>
+        </div>
+        <div class="run-meta">
+          <div class="meta-item"><div class="meta-label">Latency</div><div id="latency" class="meta-value">—</div></div>
+          <div class="meta-item"><div class="meta-label">Status</div><div id="runStatus" class="meta-value">Ready</div></div>
+          <div class="meta-item"><div class="meta-label">Warnings / Errors</div><div id="warningStatus" class="meta-value">None</div></div>
+        </div>
+      </section>
+    </aside>
+
+    <section class="analytics" aria-label="Selected model analytics">
+      <header class="analytics-head">
+        <div><h2 id="performanceTitle">Model performance</h2><p id="evaluationSubtitle" class="eyebrow">Loading registered models…</p></div>
+        <select id="metricSelect" aria-label="Comparison metric">
+          <option value="accuracy">Compare: test accuracy</option>
+          <option value="macro_f1">Compare: macro F1</option>
+          <option value="weighted_f1">Compare: weighted F1</option>
+          <option value="cv_macro_f1_mean">Compare: CV macro F1</option>
+        </select>
+      </header>
+      <div id="emptyState" class="empty">
+        No trained models are registered yet. Run the ingestion, split, and training commands, then refresh this page.
+      </div>
+      <div id="analyticsContent">
+        <div class="metrics">
+          <div class="metric"><div class="metric-name">Accuracy</div><div id="accuracyMetric" class="metric-value">—</div><div class="metric-note">locked test set</div></div>
+          <div class="metric"><div class="metric-name">Macro F1</div><div id="macroMetric" class="metric-value">—</div><div class="metric-note">equal class weight</div></div>
+          <div class="metric"><div class="metric-name">Weighted F1</div><div id="weightedMetric" class="metric-value">—</div><div class="metric-note">support weighted</div></div>
+          <div class="metric"><div class="metric-name">CV Macro F1</div><div id="cvMetric" class="metric-value">—</div><div id="cvNote" class="metric-note">training folds</div></div>
+          <div class="metric"><div class="metric-name">Log Loss</div><div id="lossMetric" class="metric-value">—</div><div class="metric-note">lower is better</div></div>
+        </div>
+        <div class="data-grid">
+          <section>
+            <div class="panel-title"><h3 id="comparisonTitle">Model comparison</h3><small>Select a bar to view its details</small></div>
+            <div class="chart-wrap"><canvas id="comparisonChart" aria-label="Model comparison chart"></canvas></div>
+          </section>
+          <section>
+            <div class="panel-title"><h3 id="matrixTitle">Confusion matrix</h3><small>Rows = actual · Columns = predicted</small></div>
+            <div id="matrixWrap" class="matrix-wrap"></div>
+          </section>
+        </div>
+        <section class="class-panel">
+          <div class="panel-title"><h3 id="classTitle">Per-class metrics</h3><small>Test-set evidence for the selected model</small></div>
+          <div class="class-table-wrap">
+            <table class="class-table">
+              <thead><tr><th>Class</th><th>Support</th><th>Precision</th><th>Recall</th><th>F1-score</th><th>Specificity</th><th>FPR</th></tr></thead>
+              <tbody id="classTableBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+      <footer id="lastUpdated" class="footer"></footer>
+    </section>
+  </main>
+
+  <script>
+    const state = { models: [], selected: null, details: null, labelScheme: 'original', inputMode: 'response_only', chart: null };
+    const $ = (id) => document.getElementById(id);
+    const names = {
+      svm: 'Support Vector Machine', random_forest: 'Random Forest', naive_bayes: 'Naive Bayes',
+      tfidf: 'TF-IDF', openai: 'OpenAI embeddings'
+    };
+    const percent = (value) => Number.isFinite(Number(value)) ? `${(Number(value) * 100).toFixed(1)}%` : '—';
+    const escapeHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
+
+    function setError(message = '') {
+      $('errorBox').textContent = message;
+      $('errorBox').classList.toggle('visible', Boolean(message));
+      $('warningStatus').textContent = message ? 'Needs attention' : 'None';
+      $('warningStatus').classList.toggle('ok', !message);
+    }
+
+    function availableModels() {
+      return state.models.filter(model => model.label_scheme === state.labelScheme && model.input_mode === state.inputMode);
+    }
+
+    function setOptions(select, values, formatter) {
+      const previous = select.value;
+      select.innerHTML = values.map(value => `<option value="${escapeHtml(value)}">${escapeHtml(formatter(value))}</option>`).join('');
+      if (values.includes(previous)) select.value = previous;
+    }
+
+    function refreshControls(preferredModelId = null) {
+      const candidates = availableModels();
+      const features = [...new Set(candidates.map(model => model.feature_type))];
+      setOptions($('featureSelect'), features, value => names[value] || value);
+      const feature = $('featureSelect').value;
+      const algorithms = [...new Set(candidates.filter(model => model.feature_type === feature).map(model => model.algorithm))];
+      setOptions($('algorithmSelect'), algorithms, value => names[value] || value);
+      const preferred = candidates.find(model => model.model_id === preferredModelId);
+      if (preferred) {
+        $('featureSelect').value = preferred.feature_type;
+        setOptions($('algorithmSelect'), [...new Set(candidates.filter(model => model.feature_type === preferred.feature_type).map(model => model.algorithm))], value => names[value] || value);
+        $('algorithmSelect').value = preferred.algorithm;
+      }
+      state.selected = candidates.find(model => model.feature_type === $('featureSelect').value && model.algorithm === $('algorithmSelect').value) || candidates[0] || null;
+      renderEmptyState();
+      if (state.selected) loadModel(state.selected.model_id);
+    }
+
+    function renderEmptyState() {
+      const empty = state.models.length === 0;
+      $('emptyState').classList.toggle('visible', empty);
+      $('analyticsContent').hidden = empty;
+      $('predictButton').disabled = empty;
+      if (empty) $('evaluationSubtitle').textContent = 'No prepared artifacts found';
+    }
+
+    async function loadModels() {
+      try {
+        const response = await fetch('/api/models');
+        if (!response.ok) throw new Error('The model catalogue could not be loaded.');
+        const payload = await response.json();
+        state.models = payload.models || [];
+        refreshControls(state.models[0]?.model_id);
+      } catch (error) {
+        state.models = [];
+        renderEmptyState();
+        setError(error.message);
+      }
+    }
+
+    async function loadModel(modelId) {
+      try {
+        const response = await fetch(`/api/models/${encodeURIComponent(modelId)}`);
+        if (!response.ok) throw new Error('The selected model details could not be loaded.');
+        state.details = await response.json();
+        state.selected = state.details.metadata;
+        renderAnalytics();
+        setError('');
+      } catch (error) { setError(error.message); }
+    }
+
+    function renderAnalytics() {
+      const { metadata, metrics } = state.details;
+      const labelName = metadata.label_scheme === 'grouped' ? 'Grouped labels' : 'Original labels';
+      $('performanceTitle').textContent = `Model performance · ${labelName}`;
+      $('evaluationSubtitle').textContent = `${names[metadata.algorithm]} · ${names[metadata.feature_type]} · ${metrics.partition_counts.test} locked test records`;
+      $('accuracyMetric').textContent = percent(metrics.accuracy);
+      $('macroMetric').textContent = percent(metrics.macro_f1);
+      $('weightedMetric').textContent = percent(metrics.weighted_f1);
+      $('cvMetric').textContent = percent(metrics.cv_macro_f1_mean);
+      $('cvNote').textContent = `± ${percent(metrics.cv_macro_f1_std)}`;
+      $('lossMetric').textContent = Number(metrics.log_loss).toFixed(3);
+      $('parameterSummary').textContent = Object.entries(metadata.best_params || {}).map(([key, value]) => `${key.replace('classifier__','')}: ${value}`).join(' · ') || 'Default fitted parameters';
+      $('resultLabel').textContent = `Predicted ${metadata.label_scheme} category`;
+      $('matrixTitle').textContent = `Confusion matrix · ${labelName}`;
+      $('classTitle').textContent = `Per-class metrics · ${labelName}`;
+      $('lastUpdated').textContent = `Evaluated ${new Date(metadata.evaluated_at).toLocaleString()}`;
+      renderComparison(); renderMatrix(metrics); renderClassTable(metrics.class_metrics || []);
+    }
+
+    function renderComparison() {
+      const metric = $('metricSelect').value;
+      const candidates = availableModels().slice().sort((a,b) => b.metrics[metric] - a.metrics[metric]);
+      $('comparisonTitle').textContent = `Model comparison · ${$('metricSelect').selectedOptions[0].text.replace('Compare: ','')}`;
+      if (state.chart) state.chart.destroy();
+      state.chart = new Chart($('comparisonChart'), {
+        type: 'bar',
+        data: {
+          labels: candidates.map(item => `${names[item.algorithm]}\n${names[item.feature_type]}`),
+          datasets: [{
+            data: candidates.map(item => item.metrics[metric] * 100),
+            backgroundColor: candidates.map(item => item.model_id === state.selected.model_id ? '#079452' : '#3657c8'),
+            borderRadius: 2,
+            maxBarThickness: 54
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          onClick: (_, elements) => { if (elements[0]) refreshControls(candidates[elements[0].index].model_id); },
+          plugins: { legend: { display: false }, tooltip: { callbacks: { label: context => `${context.raw.toFixed(2)}%` } } },
+          scales: {
+            y: { beginAtZero: true, max: 100, ticks: { callback: value => `${value}%`, color: '#68738a', font: { size: 10 } }, grid: { color: '#e9e9e5' } },
+            x: { ticks: { color: '#31405d', font: { size: 9 }, callback: function(value) { return this.getLabelForValue(value).split('\n'); } }, grid: { display: false } }
+          }
+        }
+      });
+    }
+
+    function renderMatrix(metrics) {
+      const labels = metrics.labels || [];
+      const matrix = metrics.confusion_matrix || [];
+      const max = Math.max(1, ...matrix.flat());
+      let html = '<table><thead><tr><th>Actual \\ Predicted</th>' + labels.map(label => `<th>${escapeHtml(label)}</th>`).join('') + '</tr></thead><tbody>';
+      matrix.forEach((row, rowIndex) => {
+        html += `<tr><td>${escapeHtml(labels[rowIndex])}</td>`;
+        row.forEach((value, colIndex) => {
+          const diagonal = rowIndex === colIndex;
+          const alpha = diagonal ? .10 + .25 * (value / max) : .025 + .09 * (value / max);
+          const color = diagonal ? `rgba(7,148,82,${alpha})` : `rgba(54,87,200,${alpha})`;
+          html += `<td style="background:${color}">${value}</td>`;
+        });
+        html += '</tr>';
+      });
+      $('matrixWrap').innerHTML = html + '</tbody></table>';
+    }
+
+    function renderClassTable(rows) {
+      $('classTableBody').innerHTML = rows.map(row => `<tr><td>${escapeHtml(row.label)}</td><td>${row.support}</td><td>${row.precision.toFixed(2)}</td><td>${row.recall.toFixed(2)}</td><td>${row.f1.toFixed(2)}</td><td>${row.specificity.toFixed(2)}</td><td>${row.false_positive_rate.toFixed(2)}</td></tr>`).join('');
+    }
+
+    function renderPrediction(payload) {
+      $('prediction').textContent = payload.prediction;
+      $('latency').textContent = `${payload.latency_ms} ms`;
+      $('runStatus').textContent = 'Completed'; $('runStatus').className = 'meta-value ok';
+      $('confidenceList').innerHTML = payload.top_predictions.map((item, index) => {
+        const probability = item.probability * 100;
+        return `<div class="confidence-row"><span>${index + 1}. ${escapeHtml(item.label)}</span><div class="bar-track"><div class="bar" style="width:${probability}%"></div></div><span>${probability.toFixed(1)}%</span></div>`;
+      }).join('');
+    }
+
+    async function predict() {
+      if (!state.selected) return setError('No trained model is selected.');
+      const responseText = $('responseInput').value.trim();
+      const userText = $('userInput').value.trim();
+      if (!responseText) return setError('Enter a chatbot response to classify.');
+      if (state.inputMode === 'context_enhanced' && !userText) return setError('Enter the user message for context-enhanced classification.');
+      $('predictButton').disabled = true; $('runStatus').textContent = 'Running'; setError('');
+      try {
+        const response = await fetch('/api/predict', {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ model_id: state.selected.model_id, chatbot_response: responseText, user_message: userText || null })
+        });
+        const payload = await response.json();
+        if (!response.ok) throw new Error(typeof payload.detail === 'string' ? payload.detail : 'Prediction failed.');
+        renderPrediction(payload);
+      } catch (error) {
+        $('runStatus').textContent = 'Failed'; $('runStatus').className = 'meta-value'; setError(error.message);
+      } finally { $('predictButton').disabled = false; }
+    }
+
+    function chooseLabels(scheme) {
+      state.labelScheme = scheme;
+      ['original','grouped'].forEach(value => {
+        const button = value === 'original' ? $('originalLabel') : $('groupedLabel');
+        button.classList.toggle('active', value === scheme); button.setAttribute('aria-pressed', value === scheme);
+      });
+      refreshControls();
+    }
+
+    $('originalLabel').addEventListener('click', () => chooseLabels('original'));
+    $('groupedLabel').addEventListener('click', () => chooseLabels('grouped'));
+    $('contextToggle').addEventListener('click', () => {
+      state.inputMode = state.inputMode === 'response_only' ? 'context_enhanced' : 'response_only';
+      const active = state.inputMode === 'context_enhanced';
+      $('contextToggle').classList.toggle('active', active); $('contextToggle').setAttribute('aria-checked', active); $('userField').hidden = !active;
+      refreshControls();
+    });
+    $('featureSelect').addEventListener('change', () => refreshControls());
+    $('algorithmSelect').addEventListener('change', () => refreshControls());
+    $('metricSelect').addEventListener('change', renderComparison);
+    $('predictButton').addEventListener('click', predict);
+    $('responseInput').addEventListener('input', event => $('responseCount').textContent = `${event.target.value.length.toLocaleString()} / 20,000`);
+    $('userInput').addEventListener('input', event => $('userCount').textContent = `${event.target.value.length.toLocaleString()} / 10,000`);
+    loadModels();
+  </script>
+</body>
+</html>

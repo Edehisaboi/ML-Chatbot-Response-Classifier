@@ -1,0 +1,21 @@
+.env
+.venv/
+*.egg-info/
+.build/
+.jbeval/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Generated data and ML artifacts
+data/processed/
+data/embeddings/
+artifacts/
+*.joblib
+
+# Local IDE and OS files
+.idea/
+.DS_Store
+Thumbs.db
