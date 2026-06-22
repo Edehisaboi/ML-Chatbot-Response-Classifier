@@ -140,7 +140,7 @@ def build_parser() -> argparse.ArgumentParser:
     evaluate.set_defaults(handler=_evaluate)
 
     serve = subparsers.add_parser("serve", help="Start the local API and dashboard")
-    serve.add_argument("--host", default="127.0.0.1")
+    serve.add_argument("--host", default="localhost")
     serve.add_argument("--port", type=int, default=8000)
     serve.add_argument("--reload", action="store_true")
     serve.set_defaults(handler=_serve)
@@ -150,7 +150,7 @@ def build_parser() -> argparse.ArgumentParser:
     bootstrap.add_argument("--quick", action="store_true")
     bootstrap.add_argument("--batch-size", type=int, default=64)
     bootstrap.add_argument("--no-serve", action="store_true")
-    bootstrap.add_argument("--host", default="127.0.0.1")
+    bootstrap.add_argument("--host", default="localhost")
     bootstrap.add_argument("--port", type=int, default=8000)
     bootstrap.set_defaults(handler=_bootstrap)
     return parser
