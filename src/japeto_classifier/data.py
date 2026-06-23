@@ -34,42 +34,19 @@ def workbook_schema(path: Path) -> dict[str, object]:
         sheet = workbook[workbook.sheetnames[0]]
         raw_headers = [cell.value for cell in next(sheet.iter_rows(min_row=1, max_row=1))]
         headers = [_normalized_header(value) for value in raw_headers]
-        embedding_count = sum(header.startswith("embedding_") for header in headers)
         return {
             "sheet": sheet.title,
             "rows_including_header": sheet.max_row,
             "columns": sheet.max_column,
-            "non_embedding_columns": [h for h in headers if not h.startswith("embedding_")],
-            "legacy_embedding_columns": embedding_count,
+            "headers": headers,
         }
     finally:
         workbook.close()
 
 
 def read_source_records(path: Path) -> pd.DataFrame:
-    """Read only non-embedding columns from a wide workbook.
-
-    openpyxl still streams the complete row, but only the small metadata/text subset
-    is retained in memory. No cell values are logged.
-    """
-    workbook = load_workbook(path, read_only=True, data_only=True)
-    try:
-        sheet = workbook[workbook.sheetnames[0]]
-        raw_headers = [cell.value for cell in next(sheet.iter_rows(min_row=1, max_row=1))]
-        headers = [_normalized_header(value) for value in raw_headers]
-        keep_indexes = [
-            index
-            for index, header in enumerate(headers)
-            if header and not header.startswith("embedding_")
-        ]
-        kept_headers = [headers[index] for index in keep_indexes]
-        rows = (
-            [values[index] for index in keep_indexes]
-            for values in sheet.iter_rows(min_row=2, values_only=True)
-        )
-        return pd.DataFrame(rows, columns=kept_headers)
-    finally:
-        workbook.close()
+    """Read source records from the first worksheet."""
+    return pd.read_excel(path, sheet_name=0)
 
 
 def canonicalize_category(value: object) -> str:
